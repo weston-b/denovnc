@@ -2,15 +2,17 @@ import { Key } from './keycodes.ts';
 export { Key } from './keycodes.ts';
 // import { encode, Image } from "https://deno.land/x/jpegts@1.1/mod.ts"
 import { encode  } from "https://deno.land/x/pngs@0.1.1/mod.ts";
-import Tesseract from 'npm:tesseract.js';
-
-await Tesseract.recognize(
-  'https://tesseract.projectnaptha.com/img/eng_bw.png',
-  'eng',
-  { logger: m => console.log(m) }
-).then(({ data: { text } }) => {
-  console.log(text);
-})
+// import Tesseract from 'npm:tesseract.js';
+import { Des } from "https://deno.land/x/crypto@v0.10.0/des.ts";
+import { Cbc, Padding } from "https://deno.land/x/crypto@v0.10.0/block-modes.ts";
+import { response } from './d3des.ts';
+// await Tesseract.recognize(
+//   'https://tesseract.projectnaptha.com/img/eng_bw.png',
+//   'eng',
+//   { logger: m => console.log(m) }
+// ).then(({ data: { text } }) => {
+//   console.log(text);
+// })
 
 export type rfbConnection = {
   width: number;
@@ -108,6 +110,7 @@ export const createConnection = async (options: rfbConnectionOptions) => {
   await connection.read(securityTypesBuffer);
   const supportedSecurity = Array.from(securityTypesBuffer);
 
+
   if (supportedSecurity.includes(securityType.Invalid)) {
     Promise.reject("Invalid security types.");
   } else if (supportedSecurity.includes(securityType.None)) {
@@ -117,15 +120,22 @@ export const createConnection = async (options: rfbConnectionOptions) => {
     await connection.write(new Uint8Array([2]));
     const securityChallengeBuffer = new Uint8Array(16);
     await connection.read(securityChallengeBuffer);
-    console.log(securityChallengeBuffer);
-    // TODO: Use DES to send password
+    const challengeResponse = response(securityChallengeBuffer, connProps.password || "");
+    await connection.write(challengeResponse);
   } else Promise.reject("Invalid security types.");
+
 
   const securityResultBuffer = new Uint8Array(4);
   await connection.read(securityResultBuffer);
   if (securityResultBuffer[3] === securityResult.failed
     || securityResultBuffer[3] !== securityResult.OK) {
-    Promise.reject("Security negogiation failed.");
+    const failureLengthBuffer = new Uint8Array(4);
+    await connection.read(failureLengthBuffer);
+    const failureLength = (failureLengthBuffer[0] << 24) + (failureLengthBuffer[1] << 16) + (failureLengthBuffer[2] << 8) + failureLengthBuffer[3];
+    const failureBuffer = new Uint8Array(failureLength);
+    await connection.read(failureBuffer);
+    const failure = td.decode(failureBuffer);
+    Promise.reject(`Security negogiation failed: ${failure }`);
   }
 
   // https://datatracker.ietf.org/doc/html/rfc6143#section-7.3.1

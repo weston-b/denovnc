@@ -2,7 +2,7 @@ import { createConnection, MouseButton, Key } from "./denovnc.ts";
 
 const host = '192.168.1.240';
 const port = 5900;
-const password = 'secret';
+const password = 'pass';
 
 const client = await createConnection({
   host, port, password,
