@@ -52,7 +52,11 @@ const drawSinWave = async (client: any) => {
   await client.pointerUp(1500, 750);
 }
 
-await client.framebufferUpdateRequest(20, 20, 140, 70);
+// await client.framebufferUpdateRequest(0, 1500, 400, 1600);
+// TODO: define explicit return type
+const { text } = await client.framebufferUpdateRequest(20, 20, 140, 70);
+
+console.log(text);
 
 await client.updateClipboard('Hello from deno!'); // update server clipboard
 // await client.pause(1000);               // timeout helper

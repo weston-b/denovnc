@@ -1,18 +1,8 @@
 import { Key } from './keycodes.ts';
 export { Key } from './keycodes.ts';
-// import { encode, Image } from "https://deno.land/x/jpegts@1.1/mod.ts"
 import { encode  } from "https://deno.land/x/pngs@0.1.1/mod.ts";
-// import Tesseract from 'npm:tesseract.js';
-import { Des } from "https://deno.land/x/crypto@v0.10.0/des.ts";
-import { Cbc, Padding } from "https://deno.land/x/crypto@v0.10.0/block-modes.ts";
 import { response } from './d3des.ts';
-// await Tesseract.recognize(
-//   'https://tesseract.projectnaptha.com/img/eng_bw.png',
-//   'eng',
-//   { logger: m => console.log(m) }
-// ).then(({ data: { text } }) => {
-//   console.log(text);
-// })
+import { ocr } from './tesseract/tesseractOCR.ts';
 
 export type rfbConnection = {
   width: number;
@@ -238,10 +228,39 @@ export const createConnection = async (options: rfbConnectionOptions) => {
           await connection.read(frameBufferChunk);
           frameBuffer.set(frameBufferChunk, chunk * 1000);
         }
-        // TODO: Colorshift
+        const frameBuffer32 = new Uint32Array(frameBuffer.buffer)
+        const r = pixelFormat.redShift;
+        const g = pixelFormat.greenShift;
+        const b = pixelFormat.blueShift;
+        const frameBufferOCR = new Uint8Array(frameBuffer.length);
+        frameBuffer32.forEach((element, index) =>
+          frameBuffer.set([
+            element >> r &  0b11111111,
+            element >> g &  0b11111111,
+            element >> b &  0b11111111,
+            element >> 24 & 0b11111111
+          ], index * 4));
+        frameBuffer32.forEach((element, index) =>
+        frameBufferOCR.set([
+          0,
+          element >> r &  0b11111111,
+          element >> g &  0b11111111,
+          element >> b &  0b11111111
+        ], index * 4));
 
-        const file = await Deno.create(`./captures/${Date.now()}.png`);
-        await file.write(encode(frameBuffer, rectHeader.width, rectHeader.height));
+        const result = await ocr(frameBufferOCR, rectHeader.width, rectHeader.height);
+        const capture = encode(frameBuffer, rectHeader.width, rectHeader.height);
+
+        // const file = await Deno.create(`./captures/${Date.now()}.png`);
+        // await file.write(capture);
+
+        return {
+          capture,
+          text: result.text.toLowerCase().trim(),
+          details: result,
+          confidence: result.confidence,
+          recognized: result.text
+        }
       }
     }
 
