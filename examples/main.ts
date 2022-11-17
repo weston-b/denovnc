@@ -1,11 +1,12 @@
+import { TextDecoder } from 'https://deno.land/std@0.120.0/node/util.ts'
 import { createConnection, MouseButton, Key } from '../mod.ts'
 
-const host = '192.168.1.240'
+const hostname = '192.168.1.240'
 const port = 5900
 const password = 'pass'
 
 const client = await createConnection({
-  host, port, password,
+  hostname, port, password,
   onerror: (error: any) => {
     throw new Error(error)
   },
@@ -15,14 +16,12 @@ const client = await createConnection({
   onconnected: () => {
     console.log('Successfully connected and authorised.')
     console.log(`Remote screen name: ${client.name} Width: ${client.width()} Height: ${client.height()}`)
-    // console.log(`Remote screen name: ${client.title} Width: ${client.width} Height: ${client.height}`)
   },
   onresize: () => {
-    // console.log(`Window size has been resized! Width: ${client.width}, Height: ${client.height}`)
     console.log(`Window size has been resized! Width: ${client.width()}, Height: ${client.height()}`)
   },
-  onclipboard: (newPasteBufData: any) => {
-    console.log('Remote clipboard updated!', newPasteBufData)
+  onclipboard: (pasteBuffer: Uint8Array) => {
+    console.log('Remote clipboard updated!', new TextDecoder().decode(pasteBuffer))
   },
   onbell: () => {
     console.log('Bell!')
@@ -60,24 +59,33 @@ const drawSinWave = async (client: any) => {
 // await client.key(Key.ShiftTab)         // keycode - sends keydown, then keyup
 
 
-// const { text } = await client.framebufferUpdateRequest(20, 20, 140, 70)
+// console.log(await client.framebufferUpdateRequest(20, 20, 140, 70))
+// await client.framebufferUpdateRequest(20, 20, 140, 70)
+client.framebufferUpdateRequest(0, 0, 100, 100)
+await client.framebufferUpdateRequest(1000, 1000, 1020, 1020)
 
 // console.log(text)
 
 // TODO: set global pause
 
-await client.key(Key.Super)
-await client.pause(500)
-await client.type('term')
-await client.pause(500)
-await client.key(Key.Enter)
-await client.pause(500)
-await client.key(Key.Up, Key.Super)
-await client.pause(500)
-await client.type('ping 127.0.0.1')
-await client.pause(500)
-await client.key(Key.Enter)
+// await client.key(Key.Super)
+// await client.pause(500)
+// await client.type('term')
+// await client.pause(500)
+// await client.key(Key.Enter)
+// await client.pause(500)
+// await client.key(Key.Up, Key.Super)
+// await client.pause(500)
+// await client.type('ping 127.0.0.1')
+// await client.key(Key.Up, Key.Super)
+// await client.key(Key.Enter)
 
+
+await client.key(Key.x, Key.Control)
+await client.pause(500)
+await client.key(Key.v, Key.Control)
+await client.key(Key.v, Key.Control)
+await client.pause(8000)
 
 // await client.updateClipboard('Hello!') // update server clipboard
 // await client.pause(1000)               // timeout helper

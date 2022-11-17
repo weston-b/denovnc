@@ -55,11 +55,23 @@ export const ocr = async (imageBuffer: Uint8Array, width: number, height: number
       api.SetVariable(key, defaultParams[key])
     })
 
+  // Just move alpha to 1st position. This can be implemented more effeciently.
+  const frameBuffer32 = new Uint32Array(imageBuffer.buffer)
+  frameBuffer32.forEach((element, index) =>
+  imageBuffer.set([
+      0,
+      element & 0b11111111,
+      element & 0b11111111,
+      element & 0b11111111
+    ], index * 4))
+
+
   const bitmap = Encoder({
     data: Buffer.from(imageBuffer),
     width,
     height
   })
+
 
   const ptr = setImage(TessModule, api, bitmap.data)
   // api.SetRectangle(rec.left, rec.top, rec.width, rec.height)
