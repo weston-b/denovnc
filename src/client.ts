@@ -177,7 +177,7 @@ export const createConnection = async ({
   // https://datatracker.ietf.org/doc/html/rfc6143#section-7.5.3
   const framebufferRequests =
     new Map<String, (
-      (frameBuffer: Uint8Array) => void)>([]);
+      (framebuffer: Uint8Array) => void)>([]);
 
   const framebufferUpdateRequest = (x1: number, y1: number, x2: number, y2: number, incremental = false) => {
     const width = Math.abs(x1 - x2)
@@ -200,19 +200,29 @@ export const createConnection = async ({
     return framebufferPromise
   }
 
-  // const result = await ocr(frameBuffer, width, height)
-  // const capture = encode(frameBuffer, width, height)
 
-  // // const file = await Deno.create(`./captures/${Date.now()}.png`)
-  // // await file.write(capture)
+  const recognize = async (x1: number, y1: number, x2: number, y2: number, incremental = false) => {
 
-  // return {
-  //   capture,
-  //   text: result.text.toLowerCase().trim(),
-  //   details: result,
-  //   confidence: result.confidence,
-  //   recognized: result.text
-  // }
+    const {framebuffer, width, height} =
+      await framebufferUpdateRequest(x1, y1, x2, y2, incremental)
+    const result = await ocr(framebuffer.slice(), width, height)
+    const capture = encode(framebuffer, width, height)
+
+    return {
+      capture,
+      text: result.text.toLowerCase().trim(),
+      details: result,
+      confidence: result.confidence,
+      recognized: result.text
+    }
+  }
+
+
+  const matchText = async (x1: number, y1: number, x2: number, y2: number, matchText: string, incremental = false) => {
+    const { text } = await recognize(x1, y1, x2, y2, incremental)
+    return text === matchText.toLowerCase().trim()
+  }
+
 
   // https://datatracker.ietf.org/doc/html/rfc6143#section-7.5.4
   const keyEvent = async (key: Key, state: ButtonState) => {
@@ -388,22 +398,22 @@ export const createConnection = async ({
 
             if (rectHeader.encode === 0) { // raw encoding
               const numberOfBytes = pixelFormat.bytesPerPixel * rectHeader.width * rectHeader.height
-              const frameBuffer = new Uint8Array(numberOfBytes)
+              const framebuffer = new Uint8Array(numberOfBytes)
               let recieved = 0
               while (recieved < numberOfBytes) {
                 const remaining = numberOfBytes - recieved
-                const frameBufferChunk = new Uint8Array(remaining > 1000 ? 1000 : remaining)
-                const chunkSize = await connection.read(frameBufferChunk)
+                const framebufferChunk = new Uint8Array(remaining > 1000 ? 1000 : remaining)
+                const chunkSize = await connection.read(framebufferChunk)
 
-                frameBuffer.set(frameBufferChunk, recieved)
+                framebuffer.set(framebufferChunk, recieved)
                 recieved = recieved + (chunkSize || 0)
               }
-              const frameBuffer32 = new Uint32Array(frameBuffer.buffer)
+              const framebuffer32 = new Uint32Array(framebuffer.buffer)
               const r = pixelFormat.redShift
               const g = pixelFormat.greenShift
               const b = pixelFormat.blueShift
-              frameBuffer32.forEach((element, index) =>
-                frameBuffer.set([
+              framebuffer32.forEach((element, index) =>
+                framebuffer.set([
                   element >> r & 0b11111111,
                   element >> g & 0b11111111,
                   element >> b & 0b11111111,
@@ -411,7 +421,7 @@ export const createConnection = async ({
                 ], index * 4))
 
               const callback = framebufferRequests.get(JSON.stringify([rectHeader.x, rectHeader.y, rectHeader.width, rectHeader.height]))
-              if (callback) callback(frameBuffer)
+              if (callback) callback(framebuffer)
             }
           }
           break
@@ -467,5 +477,7 @@ export const createConnection = async ({
     height,
     name,
     framebufferUpdateRequest,
+    recognize,
+    matchText,
   }
 }

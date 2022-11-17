@@ -61,8 +61,8 @@ const drawSinWave = async (client: any) => {
 
 // console.log(await client.framebufferUpdateRequest(20, 20, 140, 70))
 // await client.framebufferUpdateRequest(20, 20, 140, 70)
-client.framebufferUpdateRequest(0, 0, 100, 100)
-await client.framebufferUpdateRequest(1000, 1000, 1020, 1020)
+// client.framebufferUpdateRequest(0, 0, 100, 100)
+// await client.framebufferUpdateRequest(1000, 1000, 1020, 1020)
 
 // console.log(text)
 
@@ -81,11 +81,11 @@ await client.framebufferUpdateRequest(1000, 1000, 1020, 1020)
 // await client.key(Key.Enter)
 
 
-await client.key(Key.x, Key.Control)
-await client.pause(500)
-await client.key(Key.v, Key.Control)
-await client.key(Key.v, Key.Control)
-await client.pause(8000)
+// await client.key(Key.x, Key.Control)
+// await client.pause(500)
+// await client.key(Key.v, Key.Control)
+// await client.key(Key.v, Key.Control)
+// await client.pause(8000)
 
 // await client.updateClipboard('Hello!') // update server clipboard
 // await client.pause(1000)               // timeout helper
@@ -116,8 +116,15 @@ await client.pause(8000)
 //   ? await client.middleClick(100, 100)
 //   : console.log('The icon does not match!')
 
-// await client.matchText(200, 100, 'username')  // request & wait for update, then ocr & try to match text
-//   ? await client.click(100, 100)
-//   : console.log('The icon does not match!')
+// const {text, capture} = await client.recognize(30, 30, 140, 70)
+// const file = await Deno.create(`./${Date.now()}.png`)
+// await file.write(capture)
+
+if (await client.matchText(30, 30, 140, 70, 'open')) {
+  await client.click(50, 50)
+  // console.log('The text DOES match!')
+} else {
+  console.log('The text does NOT match!')
+}
 
 await client.end() // close connection

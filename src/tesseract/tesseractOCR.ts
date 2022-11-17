@@ -72,6 +72,8 @@ export const ocr = async (imageBuffer: Uint8Array, width: number, height: number
     height
   })
 
+  // const file = await Deno.create(`./${Date.now()}.bmp`)
+  // await file.write(bitmap.data)
 
   const ptr = setImage(TessModule, api, bitmap.data)
   // api.SetRectangle(rec.left, rec.top, rec.width, rec.height)
